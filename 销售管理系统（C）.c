@@ -15,10 +15,10 @@ typedef struct _SAL
 	float total;		/*年度总销售额*/
 	struct _SAL* next;	/*指向下一节点的指针*/
 } SALNODE;
-
 //声明链表的头和尾
 SALNODE* g_pHead = NULL;	//0 
 SALNODE* g_pEnd = NULL;
+static int Flag = 1;
 
 void SaleManageSystem();
 SALNODE* FindSaleByNo(char* no);
@@ -30,6 +30,8 @@ void ShowSearchSale();
 void ShowReviseSale();
 void ShowDeleteSale();
 void ShowAnalyzeSale();
+void SaveSaleToFile();
+void ReadSaleFromFile();
 void SaveSaleToFile();
 void SystemMenu();
 void SaleSystemMenu();
@@ -227,7 +229,7 @@ void AddSaleMSG(char no[12], char name[40], float total, float sales[12])
 		g_pEnd->next = pTemp;	//链接
 	}
 	g_pEnd = pTemp;
-	printf("添加成功！\n");
+	printf("正在添加！\n");
 	system("cls");
 }
 //销售信息录入界面
@@ -277,7 +279,6 @@ void ShowAddSale()
 			SaveSaleToFile();
 			SaleManageSystem();
 		}
-			
 		break;
 	case 2:
 		AddSaleMSG(no, name, total, sales);
@@ -435,6 +436,16 @@ void ShowDeleteSale()
 		{
 		case 1:
 			DeleteSaleNode(pTemp);
+			printf("\n--------------------------删除成功--------------------------\n");
+			printf("\t1：继续删除\n\t0：返回菜单\n请输入指令：");
+			scanf("%d", &Order);
+			if (Order)
+				ShowDeleteSale();
+			else
+			{
+				SaveSaleToFile();
+				SaleManageSystem();
+			}
 			break;
 		case 2:
 			ShowDeleteSale();
@@ -577,30 +588,37 @@ void SaveSaleToFile()
 void ShowReadFile()
 {
 	int Order;
-	printf("将载入上次的记录。");
-	printf("\n------------------------------------------------------------\n");
-	printf("\t1：确认\n\t0：返回主菜单\n请输入指令：");
-	scanf("%d", &Order);
-	switch (Order)
+	system("cls");
+	if (Flag)
 	{
-	case 1:
-		ReadSaleFromFile();
-		break;
-	case 0:
-		SaleManageSystem();
-		break;
-	default:
-		printf("输入的指令不对！\n");
+		printf("将载入上次的记录。");
+		printf("\n------------------------------------------------------------\n");
+		printf("\t1：确认\n\t0：返回主菜单\n请输入指令：");
+		scanf("%d", &Order);
+		switch (Order)
+		{
+		case 1:
+			ReadSaleFromFile();
+			break;
+		case 0:
+			SaleManageSystem();
+			break;
+		default:
+			printf("输入的指令不对！\n");
+		}
 	}
-
+	else
+	{
+		printf("您已近载入过记录，不能重复载入！\n");
+		system("pause");
+	}
 }
-//读取文件中学生信息
+//读取文件中销售信息
 void ReadSaleFromFile()
 {
 	FILE* pFile = fopen("dat.dat", "rb+"); 
 
 	char strBuf[500] = { 0 };
-
 	char strSaleNo[12] = { 0 };
 	char strSaleName[40] = { 0 };
 	char strTotal[30] = { 0 };
@@ -608,7 +626,7 @@ void ReadSaleFromFile()
 
 	float sales[12];
 	float total;
-
+	int C = 0;
 	int nCount = 0;
 	int j = 0;
 
@@ -625,6 +643,7 @@ void ReadSaleFromFile()
 		nCount = 0;
 		j = 0;
 		for (i = 0; strBuf[i] != '\r'; i++)
+		//while(1)
 		{
 			if (0 == nCount) //没到'.'
 			{
@@ -658,6 +677,7 @@ void ReadSaleFromFile()
 			}
 			else
 			{
+				j = 0;
 				for (int x = 0;x < 12;)
 				{				
 					strSale[j] = strBuf[i];
@@ -671,17 +691,18 @@ void ReadSaleFromFile()
 						j = 0;
 					}
 				}
+				break;
 			}
 		}
-
 		//插入到链表
-		
+		C++;
 		total = atoi(strTotal);
 		AddSaleMSG(strSaleNo, strSaleName, total, sales);
-		printf("载入成功！");
 	}
-
+	Flag = 0;
 	fclose(pFile);
+	printf("载入成功！共%d条记录。\n", C);
+	system("pause");
 }
 //主菜单 
 void SystemMenu()
@@ -911,12 +932,10 @@ void SaleManageSystem()
 		case 5:
 			//年销售额分析
 			ShowAnalyzeSale();
-		case 6:
-			//保存文件
-			ShowSaveFile();
 			break;
-		case 7:
-			ReadStuFromFile();
+		case 6:
+			//载入数据
+			ShowReadFile();
 			break;
 		case 0:
 			//返回主菜单
