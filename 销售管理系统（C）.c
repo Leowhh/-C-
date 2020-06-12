@@ -30,6 +30,7 @@ void ShowSearchSale();
 void ShowReviseSale();
 void ShowDeleteSale();
 void ShowAnalyzeSale();
+void SaveSaleToFile();
 void SystemMenu();
 void SaleSystemMenu();
 int GetWeekend(int y, int m, int d);
@@ -266,6 +267,17 @@ void ShowAddSale()
 			total += sales[i];
 		}
 		AddSaleMSG(no, name, total, sales);
+		printf("\n--------------------------录入成功--------------------------\n");
+		printf("\t1：录入新的\n\t0：返回菜单\n请输入指令：");
+		scanf("%d", &Order);
+		if (Order)
+			ShowAddSale();
+		else
+		{
+			SaveSaleToFile();
+			SaleManageSystem();
+		}
+			
 		break;
 	case 2:
 		AddSaleMSG(no, name, total, sales);
@@ -274,6 +286,7 @@ void ShowAddSale()
 	case 0:
 		//调用添加函数
 		AddSaleMSG(no, name, total, sales);
+		SaveSaleToFile();
 		SaleManageSystem();
 		break;
 	default:
@@ -370,6 +383,7 @@ void ShowReviseSale()
 			}
 			else if (Order == 0)
 			{
+				SaveSaleToFile();
 				break;
 			}
 			else
@@ -426,6 +440,7 @@ void ShowDeleteSale()
 			ShowDeleteSale();
 			break;
 		case 0:
+			SaveSaleToFile();
 			SaleManageSystem();
 			break;
 		default:
@@ -503,6 +518,171 @@ void ShowAnalyzeSale()
 	printf("%d月为当前年度销售额最小月：%.2f元\n", MinMonth, min);
 	system("pause");
 }
+//保存到文件
+void SaveSaleToFile()
+{
+	//判断链表是否是NULL
+	FILE* pFile = NULL;
+	SALNODE* pTemp = g_pHead;
+	char strBuf[500] = { 0 };
+	char strTotal[30] = { 0 };
+	char strSale[30] = { 0 };
+
+	if (NULL == g_pHead)
+	{
+		printf("没有录入数据！\n");
+		return;
+	}
+
+	//打开文件
+	pFile = fopen("dat.dat", "wb+");
+	if (NULL == pFile)
+	{
+		printf("文件打开失败\n");
+		return;
+	}
+	//操作文件指针
+	while (pTemp)
+	{
+		//学号赋值进去
+		strcpy(strBuf, pTemp->no);
+		strcat(strBuf, "*");
+		//姓名
+		strcat(strBuf, pTemp->name);
+		strcat(strBuf, "*");
+		//分数
+		sprintf(strTotal, "%.2f", pTemp->total);
+		//itoa(pTemp->total, strScore, 10);	//转换成字符串
+		strcat(strBuf, strTotal);
+		strcat(strBuf, "*");
+		for (int i = 0;i < 12;i++)
+		{
+			sprintf(strSale, "%.2f", pTemp->sales[i]);
+			strcat(strBuf, strSale);
+			strcat(strBuf, "*");
+		}
+		//itoa(pTemp->sales[0], strSale, 10);	//转换成字符串
+		//strcat(strBuf, strSale);
+
+		fwrite(strBuf, 1, strlen(strBuf), pFile); //
+		fwrite("\r\n", 1, strlen("\r\n"), pFile);
+
+		pTemp = pTemp->next;
+	}
+
+	//关闭文件
+	fclose(pFile);
+}
+//载入记录界面
+void ShowReadFile()
+{
+	int Order;
+	printf("将载入上次的记录。");
+	printf("\n------------------------------------------------------------\n");
+	printf("\t1：确认\n\t0：返回主菜单\n请输入指令：");
+	scanf("%d", &Order);
+	switch (Order)
+	{
+	case 1:
+		ReadSaleFromFile();
+		break;
+	case 0:
+		SaleManageSystem();
+		break;
+	default:
+		printf("输入的指令不对！\n");
+	}
+
+}
+//读取文件中学生信息
+void ReadSaleFromFile()
+{
+	FILE* pFile = fopen("dat.dat", "rb+"); 
+
+	char strBuf[500] = { 0 };
+
+	char strSaleNo[12] = { 0 };
+	char strSaleName[40] = { 0 };
+	char strTotal[30] = { 0 };
+	char strSale[30] = { 0 };
+
+	float sales[12];
+	float total;
+
+	int nCount = 0;
+	int j = 0;
+
+	if (NULL == pFile)
+	{
+		printf("没有记录！\n");
+		system("pause");
+		return;
+	}
+	//操作指针，读取函数
+	while (NULL != fgets(strBuf, 500, pFile))  //EOF  feof   3部分
+	{
+		int i = 0;
+		nCount = 0;
+		j = 0;
+		for (i = 0; strBuf[i] != '\r'; i++)
+		{
+			if (0 == nCount) //没到'.'
+			{
+				strSaleNo[i] = strBuf[i];
+				if ('*' == strBuf[i])
+				{
+					strSaleNo[i] = '\0';
+					nCount++;
+				}
+			}
+			else if (1 == nCount) //第一个'.'
+			{
+				strSaleName[j] = strBuf[i];
+				if ('*' == strBuf[i])
+				{
+					strSaleName[j] = '\0';
+					nCount++;
+					j = 0;
+				}
+				j++;
+			}
+			else if(2 == nCount) //第二个'.' 2 == nCount
+			{
+				strTotal[j] = strBuf[i];
+				j++;
+				if ('*' == strBuf[i])
+				{
+					nCount++;
+					j = 0;
+				}
+			}
+			else
+			{
+				for (int x = 0;x < 12;)
+				{				
+					strSale[j] = strBuf[i];
+					j++;
+					i++;
+					if ('*' == strBuf[i])
+					{
+						sales[x] = atoi(strSale);
+						x++;
+						i++;
+						j = 0;
+					}
+				}
+			}
+		}
+
+		//插入到链表
+		
+		total = atoi(strTotal);
+		AddSaleMSG(strSaleNo, strSaleName, total, sales);
+		printf("载入成功！");
+	}
+
+	fclose(pFile);
+}
 //主菜单 
 void SystemMenu()
 {
@@ -525,6 +705,7 @@ void SaleSystemMenu()
 	printf("|             【3】        销售额修改                |\n");
 	printf("|             【4】       销售信息删除               |\n");
 	printf("|             【5】       年销售额分析               |\n");
+	printf("|             【6】         载入记录                 |\n");
 	printf("|             【0】           返回                   |\n");
 	printf("|                                                    |\n");
 	printf("------------------------------------------------------\n");
@@ -730,6 +911,13 @@ void SaleManageSystem()
 		case 5:
 			//年销售额分析
 			ShowAnalyzeSale();
+		case 6:
+			//保存文件
+			ShowSaveFile();
+			break;
+		case 7:
+			ReadStuFromFile();
+			break;
 		case 0:
 			//返回主菜单
 			main();
